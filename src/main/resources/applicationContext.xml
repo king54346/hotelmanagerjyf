@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+    <!--开启扫描-->
+    <context:component-scan base-package="cn">
+        <!--注解不扫描-->
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+    <!--spring整合mybaits框架-->
+    <!--配置连接池-->
+    <bean id="propertyFileConfigForDB"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+            <value>classpath:sql.properties</value>
+            <!-- 以上为properties文件路径，默认在resources下面-->
+        </property>
+    </bean>
+
+    <bean class="com.mchange.v2.c3p0.ComboPooledDataSource" id="comboPooledDataSource">
+        <property name="driverClass" value="${jdbc.driver}"/>
+        <property name="jdbcUrl" value="${jdbc.url}"/>
+        <property name="user" value="${jdbc.username}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+    <!--sqlsessionfactory工厂-->
+    <bean class="org.mybatis.spring.SqlSessionFactoryBean" id="factory">
+        <property name="dataSource" ref="comboPooledDataSource"/>
+    </bean>
+    <!--accountdao接口的包-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer" id="configurer">
+        <property name="basePackage" value="cn.domain.dao"/>
+    </bean>
+    <!--配置spring框架声明式事务管理器-->
+    <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" id="manager">
+        <property name="dataSource" ref="comboPooledDataSource"/>
+    </bean>
+    <!--配置事务通知-->
+    <tx:advice id="interceptor" transaction-manager="manager">
+        <tx:attributes>
+            <tx:method name="find*" read-only="true"/>
+            <tx:method name="*" isolation="DEFAULT"/>
+        </tx:attributes>
+    </tx:advice>
+    <!--配置aop增强-->
+    <aop:config>
+        <aop:advisor advice-ref="interceptor" pointcut="execution(* cn.domain.service.*.*(..) )"/>
+    </aop:config>
+</beans>
